@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ben Migoza | Academic Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #003366; /* MUBAS-ish Blue */
+            --secondary-color: #f4f4f9;
+            --accent-color: #e74c3c;
+            --text-dark: #333;
+            --text-light: #777;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --success-color: #2ecc71;
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-section {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 20px;
+        }
+
+        .profile-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .profile-section p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .nav-links li {
+            list-style: none;
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: background 0.3s;
+            margin-bottom: 5px;
+        }
+
+        .nav-links li:hover, .nav-links li.active {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+        }
+
+        /* Modules List */
+        .module-list {
+            list-style: none;
+        }
+
+        .module-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .module-tag {
+            background-color: #e3f2fd;
+            color: var(--primary-color);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Assignments Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .status-due {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* To-Do List */
+        .todo-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+        }
+
+        button.add-btn {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .todo-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .todo-item.completed span {
+            text-decoration: line-through;
+            color: var(--text-light);
+        }
+
+        /* Timetable Grid */
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .time-slot {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .time-slot strong {
+            display: block;
+            color: var(--primary-color);
+        }
+
+        /* Assignment Inputs */
+        .assignment-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Focus Mode Overlay */
+        #focus-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .timer-display {
+            font-size: 6rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .focus-btn {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        /* Select styling for inputs */
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            background: white;
+        }
+
+        /* Notifications */
+        .notification-wrapper {
+            position: relative;
+        }
+
+        .notification-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 50%;
+            display: none;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 120%;
+            right: 0;
+            width: 300px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: none;
+            z-index: 1000;
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .notification-item strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .assignment-inputs { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="profile-section">
+            <h2>Ben Migoza</h2>
+            <p>Year 3 Student</p>
+            <p style="font-size: 0.8rem; margin-top:5px;">MUBAS</p>
+        </div>
+        <ul class="nav-links">
+            <li class="active" onclick="navigate('dashboard', this)">Dashboard</li>
+            <li onclick="navigate('modules', this)">My Modules</li>
+            <li onclick="navigate('assignments', this)">Assignments</li>
+            <li onclick="navigate('grades', this)">Grades</li>
+            <li onclick="navigate('timetable', this)">Timetable</li>
+            <li onclick="navigate('habits', this)">Habit Tracker</li>
+            <li onclick="navigate('settings', this)">Settings</li>
+            <li onclick="toggleFocusMode()">Focus Mode</li>
+        </ul>
+    </aside>
+
+    <!-- Main Dashboard Area -->
+    <main class="main-content">
+        <header>
+            <div>
+                <h1>Academic Overview</h1>
+                <p>Welcome back, Ben. Here is what's happening today.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="text-align: right;">
+                    <h3 id="current-date"></h3>
+                </div>
+                <div class="notification-wrapper">
+                    <button class="notification-btn" onclick="toggleNotifications()">
+                        🔔 <span id="notification-badge" class="badge">0</span>
+                    </button>
+                    <div id="notification-dropdown" class="notification-dropdown"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            
+            <!-- Modules Section -->
+            <div class="card" id="modules-card">
+                <h3>My Modules</h3>
+                <ul class="module-list">
+                    <li>
+                        <span>Web Programming</span>
+                        <span class="module-tag">CS</span>
+                    </li>
+                    <li>
+                        <span>Networking</span>
+                        <span class="module-tag">IT</span>
+                    </li>
+                    <li>
+                        <span>Financial Accounting</span>
+                        <span class="module-tag">BUS</span>
+                    </li>
+                    <li>
+                        <span>Business Comm. Skills</span>
+                        <span class="module-tag">COM</span>
+                    </li>
+                    <li>
+                        <span>Computerised Accounting</span>
+                        <span class="module-tag">ACC</span>
+                    </li>
+                    <li>
+                        <span>Numerical Methods</span>
+                        <span class="module-tag">MATH</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Upcoming Assignments -->
+            <div class="card" id="assignments-card">
+                <h3>Upcoming Assignments</h3>
+                <div class="assignment-inputs">
+                    <input type="text" id="asg-module" placeholder="Module (e.g. Web Prog)">
+                    <input type="text" id="asg-task" placeholder="Task">
+                    <input type="date" id="asg-date">
+                    <button class="add-btn" onclick="addAssignment()">Add</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Task</th>
+                            <th>Due Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignment-list">
+                        <!-- JS will populate this -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- To-Do List -->
+            <div class="card" id="todo-card">
+                <h3>To-Do List & Reminders</h3>
+                <div class="todo-input-group">
+                    <input type="text" id="todoInput" placeholder="Add new task...">
+                    <button class="add-btn" onclick="addTodo()">Add</button>
+                </div>
+                <div id="todoList">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+
+            <!-- Personal Reminders -->
+            <div class="card" id="personal-card">
+                <h3>Personal Reminders</h3>
+                <div class="todo-input-group">
+                    <input type="text" id="personalInput" placeholder="Buy groceries, call mom...">
+                    <button class="add-btn" onclick="addPersonal()">Add</button>
+                </div>
+                <div id="personalList">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+
+            <!-- Grades Section -->
+            <div class="card" id="grades-card">
+                <h3>Grade Tracker</h3>
+                <div class="assignment-inputs">
+                    <select id="grade-module">
+                        <option value="Web Programming">Web Programming</option>
+                        <option value="Networking">Networking</option>
+                        <option value="Financial Accounting">Financial Accounting</option>
+                        <option value="Business Comm. Skills">Business Comm. Skills</option>
+                        <option value="Computerised Accounting">Computerised Accounting</option>
+                        <option value="Numerical Methods">Numerical Methods</option>
+                    </select>
+                    <input type="number" id="grade-percent" placeholder="Grade (%)" min="0" max="100">
+                    <button class="add-btn" onclick="updateGrade()">Update</button>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="gradesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Habit Tracker -->
+            <div class="card" id="habits-card">
+                <h3>Daily Habit Tracker</h3>
+                <p id="habit-date-display" style="margin-bottom: 15px; color: #777;"></p>
+                <div id="habit-list"></div>
+            </div>
+
+            <!-- Timetable Snapshot -->
+            <div class="card" id="timetable-card">
+                <h3>Today's Timetable</h3>
+                <div class="timetable-grid">
+                    <div class="time-slot">
+                        <strong>08:00 - 10:00</strong>
+                        Web Programming (Lab)
+                    </div>
+                    <div class="time-slot">
+                        <strong>10:30 - 12:30</strong>
+                        Financial Accounting
+                    </div>
+                    <div class="time-slot">
+                        <strong>13:30 - 15:30</strong>
+                        Networking
+                    </div>
+                    <div class="time-slot">
+                        <strong>16:00 - 17:00</strong>
+                        Study / Library
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section (Hidden by default) -->
+            <div class="card" id="settings-card" style="display: none;">
+                <h3>Settings</h3>
+                <p>Application Settings</p>
+                <div style="margin-top: 20px;">
+                    <label style="display:block; margin-bottom:5px;">Theme</label>
+                    <select style="padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                        <option>Light Mode</option>
+                        <option>Dark Mode</option>
+                    </select>
+                    <button class="add-btn" style="margin-top: 15px;">Save Preferences</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Focus Mode Overlay -->
+    <div id="focus-overlay">
+        <h2>Focus Mode</h2>
+        <div class="timer-display" id="timer">25:00</div>
+        <div>
+            <button class="focus-btn" style="background: #2ecc71; color: white;" onclick="startTimer()">Start</button>
+            <button class="focus-btn" style="background: #e74c3c; color: white;" onclick="stopTimer()">Stop</button>
+        </div>
+        <button class="focus-btn" style="background: transparent; border: 1px solid white; color: white; margin-top: 30px; font-size: 1rem;" onclick="toggleFocusMode()">Exit Focus Mode</button>
+    </div>
+
+    <script>
+        // 1. Set Current Date
+        const dateElement = document.getElementById('current-date');
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateElement.innerText = new Date().toLocaleDateString('en-US', options);
+
+        // 2. To-Do List Logic
+        // We use LocalStorage so your data persists even if you refresh the page
+        const todoInput = document.getElementById('todoInput');
+        const todoList = document.getElementById('todoList');
+
+        // Load todos from local storage or start with defaults
+        let todos = JSON.parse(localStorage.getItem('benTodos')) || [
+            { text: "Submit Business Comm draft", completed: false },
+            { text: "Revise Numerical Methods formulas", completed: true }
+        ];
+
+        function renderTodos() {
+            todoList.innerHTML = '';
+            todos.forEach((todo, index) => {
+                const div = document.createElement('div');
+                div.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                
+                div.innerHTML = `
+                    <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${index})">
+                    <span>${todo.text}</span>
+                    <button onclick="deleteTodo(${index})" style="margin-left:auto; background:none; border:none; color:red; cursor:pointer;">&times;</button>
+                `;
+                todoList.appendChild(div);
+            });
+            // Save to local storage
+            localStorage.setItem('benTodos', JSON.stringify(todos));
+        }
+
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (text) {
+                todos.push({ text: text, completed: false });
+                todoInput.value = '';
+                renderTodos();
+            }
+        }
+
+        function toggleTodo(index) {
+            todos[index].completed = !todos[index].completed;
+            renderTodos();
+        }
+
+        function deleteTodo(index) {
+            todos.splice(index, 1);
+            renderTodos();
+        }
+
+        // Allow "Enter" key to add todo
+        todoInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                addTodo();
+            }
+        });
+
+        // 3. Navigation Logic
+        function navigate(viewId, btn) {
+            // Update Active Class
+            document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Get Cards
+            const cards = {
+                'modules': document.getElementById('modules-card'),
+                'assignments': document.getElementById('assignments-card'),
+                'todo': document.getElementById('todo-card'),
+                'timetable': document.getElementById('timetable-card'),
+                'grades': document.getElementById('grades-card'),
+                'habits': document.getElementById('habits-card'),
+                'settings': document.getElementById('settings-card'),
+                'personal': document.getElementById('personal-card')
+            };
+
+            // Hide all
+            Object.values(cards).forEach(card => card.style.display = 'none');
+
+            // Show specific
+            if (viewId === 'dashboard') {
+                // Show all except settings
+                cards['modules'].style.display = 'block';
+                cards['assignments'].style.display = 'block';
+                cards['todo'].style.display = 'block';
+                cards['personal'].style.display = 'block';
+                cards['grades'].style.display = 'block';
+                cards['habits'].style.display = 'block';
+                cards['timetable'].style.display = 'block';
+            } else if (cards[viewId]) {
+                cards[viewId].style.display = 'block';
+            }
+        }
+
+        // 4. Assignments Logic
+        const asgList = document.getElementById('assignment-list');
+        let assignments = JSON.parse(localStorage.getItem('benAssignments')) || [
+            { module: "Web Programming", task: "Portfolio Website", date: "2023-10-25" },
+            { module: "Numerical Methods", task: "Linear Algebra Quiz", date: "2023-10-28" }
+        ];
+
+        function renderAssignments() {
+            asgList.innerHTML = '';
+            assignments.forEach((asg, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${asg.module}</td>
+                    <td>${asg.task}</td>
+                    <td class="status-due">${asg.date}</td>
+                    <td><button onclick="deleteAssignment(${index})" style="color:red; border:none; background:none; cursor:pointer;">&times;</button></td>
+                `;
+                asgList.appendChild(row);
+            });
+            localStorage.setItem('benAssignments', JSON.stringify(assignments));
+            checkNotifications(); // Update notifications whenever assignments change
+        }
+
+        function addAssignment() {
+            const mod = document.getElementById('asg-module').value;
+            const task = document.getElementById('asg-task').value;
+            const date = document.getElementById('asg-date').value;
+
+            if(mod && task && date) {
+                assignments.push({ module: mod, task: task, date: date });
+                renderAssignments();
+                // Clear inputs
+                document.getElementById('asg-module').value = '';
+                document.getElementById('asg-task').value = '';
+                document.getElementById('asg-date').value = '';
+            } else {
+                alert("Please fill in all fields");
+            }
+        }
+
+        function deleteAssignment(index) {
+            assignments.splice(index, 1);
+            renderAssignments();
+        }
+
+        // 4b. Personal Reminders Logic
+        const personalInput = document.getElementById('personalInput');
+        const personalList = document.getElementById('personalList');
+
+        let personalReminders = JSON.parse(localStorage.getItem('benPersonal')) || [
+            { text: "Call Mom", completed: false },
+            { text: "Buy groceries", completed: true }
+        ];
+
+        function renderPersonal() {
+            personalList.innerHTML = '';
+            personalReminders.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `todo-item ${item.completed ? 'completed' : ''}`;
+                
+                div.innerHTML = `
+                    <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="togglePersonal(${index})">
+                    <span>${item.text}</span>
+                    <button onclick="deletePersonal(${index})" style="margin-left:auto; background:none; border:none; color:red; cursor:pointer;">&times;</button>
+                `;
+                personalList.appendChild(div);
+            });
+            localStorage.setItem('benPersonal', JSON.stringify(personalReminders));
+        }
+
+        function addPersonal() {
+            const text = personalInput.value.trim();
+            if (text) {
+                personalReminders.push({ text: text, completed: false });
+                personalInput.value = '';
+                renderPersonal();
+            }
+        }
+
+        function togglePersonal(index) {
+            personalReminders[index].completed = !personalReminders[index].completed;
+            renderPersonal();
+        }
+
+        function deletePersonal(index) {
+            personalReminders.splice(index, 1);
+            renderPersonal();
+        }
+
+        personalInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") addPersonal();
+        });
+
+        // 5. Focus Mode Logic
+        let timerInterval;
+        let timeLeft = 25 * 60; // 25 minutes in seconds
+
+        function toggleFocusMode() {
+            const overlay = document.getElementById('focus-overlay');
+            if (overlay.style.display === 'flex') {
+                overlay.style.display = 'none';
+                stopTimer();
+            } else {
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').innerText = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if(timerInterval) return; // Prevent multiple intervals
+            timerInterval = setInterval(() => {
+                if(timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    stopTimer();
+                    alert("Focus session complete!");
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        // 6. Timetable Logic
+        const ttList = document.getElementById('timetable-list');
+        let timetable = JSON.parse(localStorage.getItem('benTimetable')) || [
+            { day: "Monday", time: "08:00 - 10:00", activity: "Web Programming (Lab)" },
+            { day: "Monday", time: "10:30 - 12:30", activity: "Financial Accounting" },
+            { day: "Tuesday", time: "13:30 - 15:30", activity: "Networking" },
+            { day: "Wednesday", time: "16:00 - 17:00", activity: "Study / Library" }
+        ];
+
+        function renderTimetable() {
+            ttList.innerHTML = '';
+            const dayOrder = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7 };
+            
+            timetable.sort((a, b) => {
+                if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+                return a.time.localeCompare(b.time);
+            });
+
+            timetable.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'time-slot';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>${item.day}</strong>
+                        <button onclick="deleteTimetableEntry(${index})" style="color:red; border:none; background:none; cursor:pointer;">&times;</button>
+                    </div>
+                    <span style="font-size:0.85rem; color:#555;">${item.time}</span>
+                    <div style="margin-top:5px;">${item.activity}</div>
+                `;
+                ttList.appendChild(div);
+            });
+            localStorage.setItem('benTimetable', JSON.stringify(timetable));
+        }
+
+        function addTimetableEntry() {
+            const day = document.getElementById('tt-day').value;
+            const time = document.getElementById('tt-time').value;
+            const activity = document.getElementById('tt-activity').value;
+
+            if(day && time && activity) {
+                timetable.push({ day, time, activity });
+                renderTimetable();
+                document.getElementById('tt-time').value = '';
+                document.getElementById('tt-activity').value = '';
+            } else {
+                alert("Please fill in all fields");
+            }
+        }
+
+        function deleteTimetableEntry(index) {
+            timetable.splice(index, 1);
+            renderTimetable();
+        }
+
+        // 7. Notification Logic
+        function checkNotifications() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            // Filter assignments due within the next 7 days
+            const upcoming = assignments.filter(asg => {
+                const dueDate = new Date(asg.date);
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                return diffDays >= 0 && diffDays <= 7;
+            });
+
+            const badge = document.getElementById('notification-badge');
+            const dropdown = document.getElementById('notification-dropdown');
+            
+            if (upcoming.length > 0) {
+                badge.style.display = 'block';
+                badge.innerText = upcoming.length;
+                
+                dropdown.innerHTML = '';
+                upcoming.forEach(asg => {
+                    const div = document.createElement('div');
+                    div.className = 'notification-item';
+                    div.innerHTML = `<strong>${asg.module}</strong>Upcoming: ${asg.task}<br><span style="color:#e74c3c; font-size:0.8rem;">Due: ${asg.date}</span>`;
+                    dropdown.appendChild(div);
+                });
+            } else {
+                badge.style.display = 'none';
+                dropdown.innerHTML = '<div class="notification-item">No upcoming deadlines this week.</div>';
+            }
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notification-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.notification-wrapper')) {
+                document.getElementById('notification-dropdown').style.display = 'none';
+            }
+        });
+
+        // 8. Grades & Chart Logic
+        const ctx = document.getElementById('gradesChart').getContext('2d');
+        let gradesChart;
+
+        // Default grades (0 if not set)
+        const defaultModules = [
+            "Web Programming", "Networking", "Financial Accounting", 
+            "Business Comm. Skills", "Computerised Accounting", "Numerical Methods"
+        ];
+
+        let studentGrades = JSON.parse(localStorage.getItem('benGrades')) || {};
+
+        // Ensure all modules exist in the object
+        defaultModules.forEach(mod => {
+            if (!studentGrades.hasOwnProperty(mod)) {
+                studentGrades[mod] = 0;
+            }
+        });
+
+        function renderChart() {
+            if (typeof Chart === 'undefined') return;
+
+            const labels = Object.keys(studentGrades);
+            const data = Object.values(studentGrades);
+            
+            // Colors based on score
+            const backgroundColors = data.map(score => {
+                if(score < 50) return 'rgba(231, 76, 60, 0.6)'; // Red
+                if(score < 70) return 'rgba(241, 196, 15, 0.6)'; // Yellow
+                return 'rgba(46, 204, 113, 0.6)'; // Green
+            });
+
+            if (gradesChart) {
+                gradesChart.destroy();
+            }
+
+            gradesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Grades (%)',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors.map(c => c.replace('0.6', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateGrade() {
+            const mod = document.getElementById('grade-module').value;
+            const score = document.getElementById('grade-percent').value;
+            
+            if (score !== '') {
+                studentGrades[mod] = parseInt(score);
+                localStorage.setItem('benGrades', JSON.stringify(studentGrades));
+                renderChart();
+                document.getElementById('grade-percent').value = '';
+            } else {
+                alert("Please enter a grade");
+            }
+        }
+
+        // 9. Habit Tracker Logic
+        const habitListContainer = document.getElementById('habit-list');
+        const habitDateDisplay = document.getElementById('habit-date-display');
+
+        function renderHabits() {
+            const today = new Date();
+            const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dayOfWeek = today.getDay(); // 0=Sun, 6=Sat
+            
+            habitDateDisplay.innerText = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Load history
+            let habitHistory = JSON.parse(localStorage.getItem('benHabitHistory')) || {};
+            let todayHabits = habitHistory[dateKey] || {};
+
+            // Define habits
+            const allHabits = [
+                { id: 'study', text: 'Studied', excludeDays: [6] }, // Exclude Saturday
+                { id: 'procrastinate', text: 'Did not procrastinate', excludeDays: [] },
+                { id: 'eve', text: 'Called Eve', excludeDays: [] },
+                { id: 'math', text: 'Solved Math', excludeDays: [] },
+                { id: 'coding', text: 'Practice Coding', excludeDays: [] },
+                { id: 'church', text: 'Went to Church', onlyDays: [6] } // Only Saturday
+            ];
+
+            habitListContainer.innerHTML = '';
+
+            allHabits.forEach(habit => {
+                if (habit.excludeDays && habit.excludeDays.includes(dayOfWeek)) return;
+                if (habit.onlyDays && !habit.onlyDays.includes(dayOfWeek)) return;
+
+                const isChecked = todayHabits[habit.id] || false;
+
+                const div = document.createElement('div');
+                div.className = `todo-item ${isChecked ? 'completed' : ''}`;
+                div.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleHabit('${dateKey}', '${habit.id}')">
+                    <span>${habit.text}</span>
+                `;
+                habitListContainer.appendChild(div);
+            });
+        }
+
+        function toggleHabit(dateKey, habitId) {
+            let habitHistory = JSON.parse(localStorage.getItem('benHabitHistory')) || {};
+            if (!habitHistory[dateKey]) habitHistory[dateKey] = {};
+            
+            habitHistory[dateKey][habitId] = !habitHistory[dateKey][habitId];
+            
+            localStorage.setItem('benHabitHistory', JSON.stringify(habitHistory));
+            renderHabits();
+        }
+
+        // Initial Render
+        renderTodos();
+        renderAssignments();
+        renderTimetable();
+        renderPersonal();
+        renderHabits();
+        renderChart();
+    </script>
+</body>
+</html>
